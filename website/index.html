@@ -9,7 +9,7 @@
   <meta property="og:description" content="Capture your screen, ask a question, get a streaming AI response — all without leaving your workflow.">
   <meta property="og:type" content="website">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -38,51 +38,89 @@
       overflow-x: hidden;
     }
 
+    h1, h2, h3, .hero-title, .section-title, .feature-name, .step-title {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+    }
+
+    .dim { color: rgba(255,255,255,0.45); }
+
+    .accent {
+      background: linear-gradient(135deg, var(--purple-light) 0%, var(--purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
     a { color: inherit; text-decoration: none; }
 
     /* ── NAV ───────────────────────────────────────────── */
-    nav {
+    .nav-wrap {
       position: fixed;
-      inset: 0 0 auto 0;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 48px);
+      max-width: 1080px;
       z-index: 100;
+    }
+
+    nav {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 40px;
-      height: 64px;
-      background: rgba(10, 10, 15, 0.75);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--border);
+      padding: 0 6px 0 20px;
+      height: 52px;
+      background: rgba(14, 14, 24, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(139, 92, 246, 0.22);
+      border-radius: 100px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(139,92,246,.06);
     }
 
     .nav-logo {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 9px;
       font-weight: 700;
-      font-size: 18px;
+      font-size: 16px;
       letter-spacing: -0.03em;
+      white-space: nowrap;
     }
-    .nav-logo svg { width: 30px; height: 30px; }
+    .nav-logo svg { width: 26px; height: 26px; flex-shrink: 0; }
 
-    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .nav-wip {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 100px;
+      padding: 2px 8px;
+      margin-left: 2px;
+    }
 
-    .btn-ghost {
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .nav-tab {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       padding: 7px 16px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 100px;
       font-size: 13px;
       font-weight: 500;
       color: var(--text-muted);
-      transition: border-color .2s, color .2s, background .2s;
-      cursor: pointer;
+      transition: color .2s, background .2s;
       white-space: nowrap;
     }
-    .btn-ghost:hover { border-color: var(--purple); color: var(--text); background: rgba(139,92,246,.08); }
+    .nav-tab:hover { color: var(--text); background: rgba(255,255,255,.06); }
+    .nav-tab svg { flex-shrink: 0; }
 
     /* ── HERO ──────────────────────────────────────────── */
     .hero {
@@ -108,25 +146,7 @@
       pointer-events: none;
     }
 
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 14px;
-      border: 1px solid rgba(139,92,246,.4);
-      border-radius: 100px;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--purple-light);
-      background: rgba(139,92,246,.08);
-      margin-bottom: 36px;
-    }
-    .hero-badge span { display: inline-block; width: 6px; height: 6px; background: var(--purple); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
-
-    .hero-logo {
+.hero-logo {
       width: 100px;
       height: 100px;
       margin-bottom: 36px;
@@ -365,14 +385,16 @@
     }
 
     .feature-icon {
-      width: 44px; height: 44px;
-      background: rgba(139,92,246,.1);
-      border: 1px solid rgba(139,92,246,.22);
-      border-radius: 11px;
+      width: 100%; height: 160px;
+      background: rgba(139,92,246,.06);
+      border: 1px solid rgba(139,92,246,.18);
+      border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
       font-size: 21px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
+      overflow: hidden;
     }
+    .feature-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
 
     .feature-name {
       font-size: 15px;
@@ -486,68 +508,71 @@
       gap: 12px;
     }
 
-    .footer-logo {
+.footer-links {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: -.02em;
-    }
-    .footer-logo svg { width: 22px; height: 22px; }
-
-    .footer-links {
-      display: flex;
-      gap: 20px;
-      font-size: 13px;
+      gap: 10px;
+      font-size: 12px;
       color: var(--text-dim);
     }
     .footer-links a { transition: color .2s; }
-    .footer-links a:hover { color: var(--purple-light); }
+    .footer-links a:hover { color: var(--text-muted); }
+    .footer-links .sep { opacity: .35; user-select: none; }
 
-    footer p { font-size: 12px; color: var(--text-dim); }
+    /* ── SCROLL REVEAL ─────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      transition-delay: calc(var(--i, 0) * 90ms);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
 
     /* ── RESPONSIVE ────────────────────────────────────── */
     @media (max-width: 640px) {
-      nav { padding: 0 20px; }
+      .nav-wrap { width: calc(100% - 24px); top: 10px; }
+      .nav-tab:nth-child(2) { display: none; }
       .hero { padding: 100px 20px 60px; }
       .hero-visual { display: none; }
-      footer { flex-direction: column; align-items: flex-start; padding: 24px 20px; }
-      .footer-links { gap: 14px; }
+      footer { flex-direction: column; align-items: flex-start; padding: 24px 20px; gap: 16px; }
+      .footer-links { flex-wrap: wrap; gap: 8px; }
     }
   </style>
 </head>
 <body>
 
 <!-- ── NAV ─────────────────────────────────────────────── -->
-<nav>
-  <a href="#" class="nav-logo">
-    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="40" cy="40" r="38" fill="#0a0a0f" stroke="rgba(139,92,246,0.3)" stroke-width="1.5"/>
-      <path d="M10 40 C18 22, 62 22, 70 40 C62 58, 18 58, 10 40 Z" stroke="rgb(139,92,246)" stroke-width="2.2" stroke-linejoin="round" fill="rgba(139,92,246,0.08)"/>
-      <circle cx="40" cy="40" r="13" stroke="rgb(139,92,246)" stroke-width="2" fill="rgba(139,92,246,0.12)"/>
-      <circle cx="40" cy="40" r="5.5" fill="rgb(139,92,246)"/>
-      <circle cx="44" cy="35" r="2.5" fill="rgba(255,255,255,0.65)"/>
-    </svg>
-    Glance
-  </a>
-  <div class="nav-right">
-    <a href="#features" class="btn-ghost">Features</a>
-    <a href="https://github.com/realkyle/glance" target="_blank" class="btn-ghost">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      GitHub
+<div class="nav-wrap">
+  <nav>
+    <a href="#" class="nav-logo">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="40" r="38" fill="#0a0a0f" stroke="rgba(139,92,246,0.3)" stroke-width="1.5"/>
+        <path d="M10 40 C18 22, 62 22, 70 40 C62 58, 18 58, 10 40 Z" stroke="rgb(139,92,246)" stroke-width="2.2" stroke-linejoin="round" fill="rgba(139,92,246,0.08)"/>
+        <circle cx="40" cy="40" r="13" stroke="rgb(139,92,246)" stroke-width="2" fill="rgba(139,92,246,0.12)"/>
+        <circle cx="40" cy="40" r="5.5" fill="rgb(139,92,246)"/>
+        <circle cx="44" cy="35" r="2.5" fill="rgba(255,255,255,0.65)"/>
+      </svg>
+      Glance
+      <span class="nav-wip">In progress</span>
     </a>
-  </div>
-</nav>
+    <div class="nav-tabs">
+      <a href="#features" class="nav-tab">Features</a>
+      <a href="#how" class="nav-tab">How it works</a>
+      <a href="https://github.com/realkyle/glance" target="_blank" class="nav-tab">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+      <a href="https://github.com/realkyle/glance/releases" target="_blank" class="nav-tab">Releases</a>
+    </div>
+  </nav>
+</div>
 
 <!-- ── HERO ─────────────────────────────────────────────── -->
 <section class="hero">
   <div class="hero-glow"></div>
-
-  <div class="hero-badge">
-    <span></span>
-    Powered by Claude AI
-  </div>
 
   <svg class="hero-logo" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="40" cy="40" r="38" fill="#0a0a0f" stroke="rgba(139,92,246,0.3)" stroke-width="1.5"/>
@@ -560,7 +585,7 @@
   <h1 class="hero-title">Your screen,<br><em>understood instantly</em></h1>
 
   <p class="hero-sub">
-    Glance is an always-on-top AI overlay that captures your screen and answers your questions in real time — without breaking your flow.
+    Glance is an always-on-top <span class="accent">AI overlay</span> that captures your screen and answers your questions <span class="accent">in real time</span> — without breaking your flow.
   </p>
 
   <div class="hero-actions">
@@ -574,9 +599,13 @@
     </a>
   </div>
   <p class="hero-note">v1.3.0 · Portable .exe · No installer needed · Windows 10+</p>
+  <p class="hero-note" style="margin-top:6px;">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Demo video coming soon
+  </p>
 
   <!-- App mockup -->
-  <div class="hero-visual">
+  <div class="hero-visual reveal" style="--i:3">
     <div class="mockup-wrap">
       <div class="mockup-titlebar">
         <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -616,45 +645,45 @@
 <!-- ── FEATURES ──────────────────────────────────────────── -->
 <section id="features">
   <div class="section-inner">
-    <span class="section-eyebrow">Features</span>
-    <h2 class="section-title">Everything you need,<br>nothing you don't</h2>
-    <p class="section-sub">A focused set of tools for getting instant AI answers without leaving your screen.</p>
+    <span class="section-eyebrow reveal">Features</span>
+    <h2 class="section-title reveal" style="--i:1">Everything you need,<br><span class="dim">nothing you don't</span></h2>
+    <p class="section-sub reveal" style="--i:2">A focused set of tools for getting <span class="accent">instant AI answers</span> without leaving your screen.</p>
 
     <div class="features-grid">
 
-      <div class="feature-card">
-        <div class="feature-icon">📸</div>
-        <div class="feature-name">Instant Screen Capture</div>
+      <div class="feature-card reveal" style="--i:0">
+        <div class="feature-icon"></div>
+        <div class="feature-name"><span class="accent">Instant</span> Screen Capture</div>
         <p class="feature-desc">Press <kbd>Ctrl+Shift+Space</kbd> to capture the full screen, or <kbd>Ctrl+Shift+D</kbd> to drag a region. The window hides before the shot so it's never in the frame.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <div class="feature-name">Streaming AI Responses</div>
+      <div class="feature-card reveal" style="--i:1">
+        <div class="feature-icon"></div>
+        <div class="feature-name">Streaming <span class="accent">AI Responses</span></div>
         <p class="feature-desc">Answers stream word-by-word from Claude — no waiting for the full response. Powered by <strong style="color:#fff">claude-sonnet-4-6</strong> with full vision support.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">🧠</div>
-        <div class="feature-name">Context Detection</div>
+      <div class="feature-card reveal" style="--i:2">
+        <div class="feature-icon"></div>
+        <div class="feature-name"><span class="accent">Context</span> Detection</div>
         <p class="feature-desc">Claude automatically identifies what's on your screen — Code, Browser, Document, Terminal, or Design — and tags the response with a colored badge.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">🎙️</div>
-        <div class="feature-name">Voice Input</div>
+      <div class="feature-card reveal" style="--i:3">
+        <div class="feature-icon"></div>
+        <div class="feature-name"><span class="accent">Voice</span> Input</div>
         <p class="feature-desc">Tap the mic button and speak your question. Audio is transcribed by OpenAI Whisper and dropped straight into the input — no typing required.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">💬</div>
-        <div class="feature-name">Conversation Memory</div>
+      <div class="feature-card reveal" style="--i:4">
+        <div class="feature-icon"></div>
+        <div class="feature-name">Conversation <span class="accent">Memory</span></div>
         <p class="feature-desc">Every capture and follow-up builds on the last. Ask "why?" or "show me an example" and Claude remembers exactly what was on your screen.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon">🔲</div>
-        <div class="feature-name">Always on Top</div>
+      <div class="feature-card reveal" style="--i:5">
+        <div class="feature-icon"></div>
+        <div class="feature-name">Always <span class="accent">on Top</span></div>
         <p class="feature-desc">Glance floats above all other windows, freely resizable, and collapses to a tiny pill when you need more space. Minimizes to the system tray, never the taskbar.</p>
       </div>
 
@@ -665,22 +694,22 @@
 <!-- ── HOW IT WORKS ──────────────────────────────────────── -->
 <section id="how">
   <div class="section-inner">
-    <span class="section-eyebrow">How it works</span>
-    <h2 class="section-title">Three keystrokes to an answer</h2>
-    <p class="section-sub">Glance stays out of your way until you need it. No switching apps, no copy-pasting, no context loss.</p>
+    <span class="section-eyebrow reveal">How it works</span>
+    <h2 class="section-title reveal" style="--i:1">Three keystrokes <span class="dim">to an answer</span></h2>
+    <p class="section-sub reveal" style="--i:2">Glance stays out of your way until you need it. <span class="accent">No switching apps</span>, no copy-pasting, no context loss.</p>
 
     <div class="steps">
-      <div class="step">
+      <div class="step reveal" style="--i:0">
         <div class="step-num">1</div>
         <div class="step-title">Capture your screen</div>
         <p class="step-desc">Press <kbd>Ctrl+Shift+Space</kbd> for a full screenshot, or <kbd>Ctrl+Shift+D</kbd> to drag over any region. Glance hides itself so it never shows up in the image.</p>
       </div>
-      <div class="step">
+      <div class="step reveal" style="--i:1">
         <div class="step-num">2</div>
         <div class="step-title">Ask your question</div>
         <p class="step-desc">Type or speak a question before or after capturing. Skip the prompt entirely for an automatic context analysis — Glance will describe what it sees.</p>
       </div>
-      <div class="step">
+      <div class="step reveal" style="--i:2">
         <div class="step-num">3</div>
         <div class="step-title">Get a streaming answer</div>
         <p class="step-desc">Claude streams back a response word-by-word. Ask follow-ups naturally — every reply is in the same thread and Claude remembers the full history.</p>
@@ -693,9 +722,9 @@
 <section id="cta">
   <div class="section-inner">
     <div class="cta-glow">
-      <span class="section-eyebrow" style="display:block; text-align:center;">Download</span>
-      <h2 class="section-title">Ready to see clearly?</h2>
-      <p class="section-sub">A single portable .exe — drop it anywhere and run it. No installer, no admin rights, no setup.</p>
+      <span class="section-eyebrow reveal" style="display:block; text-align:center;">Download</span>
+      <h2 class="section-title reveal" style="--i:1">Ready to <span class="accent">see clearly?</span></h2>
+      <p class="section-sub reveal" style="--i:2">A single portable .exe — <span class="dim">drop it anywhere and run it. No installer, no admin rights, no setup.</span></p>
       <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
         <a href="https://github.com/realkyle/glance/releases/download/v1.3.0/Glance%201.3.0.exe" class="btn-primary" style="font-size:16px; padding:15px 32px;">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -712,24 +741,29 @@
 
 <!-- ── FOOTER ────────────────────────────────────────────── -->
 <footer>
-  <a href="#" class="footer-logo">
-    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="40" cy="40" r="38" fill="#0a0a0f" stroke="rgba(139,92,246,0.3)" stroke-width="1.5"/>
-      <path d="M10 40 C18 22, 62 22, 70 40 C62 58, 18 58, 10 40 Z" stroke="rgb(139,92,246)" stroke-width="2.2" stroke-linejoin="round" fill="rgba(139,92,246,0.08)"/>
-      <circle cx="40" cy="40" r="13" stroke="rgb(139,92,246)" stroke-width="2" fill="rgba(139,92,246,0.12)"/>
-      <circle cx="40" cy="40" r="5.5" fill="rgb(139,92,246)"/>
-      <circle cx="44" cy="35" r="2.5" fill="rgba(255,255,255,0.65)"/>
-    </svg>
-    Glance
-  </a>
-  <nav class="footer-links">
-    <a href="#features">Features</a>
-    <a href="#how">How it works</a>
+<nav class="footer-links">
     <a href="https://github.com/realkyle/glance" target="_blank">GitHub</a>
-    <a href="https://github.com/realkyle/glance/releases" target="_blank">Releases</a>
+    <span class="sep">•</span>
+    <a href="#">Privacy Policy</a>
+    <span class="sep">•</span>
+    <a href="#">Terms of Service</a>
+    <span class="sep">•</span>
+    <a href="#">Cookie Policy</a>
   </nav>
-  <p>Built by <a href="https://github.com/realkyle" style="color:var(--text-muted)" target="_blank">Kyle Goto Hale</a> · MIT License</p>
 </footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
 
 </body>
 </html>
