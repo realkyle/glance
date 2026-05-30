@@ -4,6 +4,17 @@ const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
 const SYSTEM_PROMPT = `You are Glance — a real-time AI assistant embedded in the user's screen overlay. When shown a screenshot, give concise, actionable, specific suggestions. Use 2-4 short bullet points (•). Be direct. No fluff. Focus on what's most immediately useful.`;
 
+function parseInline(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return parts.map((seg, i) => {
+    if (seg.startsWith('**') && seg.endsWith('**'))
+      return <strong key={i} style={{ color: 'rgba(255,255,255,0.98)', fontWeight: 700 }}>{seg.slice(2, -2)}</strong>;
+    if (seg.startsWith('*') && seg.endsWith('*'))
+      return <em key={i} style={{ color: 'rgba(255,255,255,0.85)' }}>{seg.slice(1, -1)}</em>;
+    return seg;
+  });
+}
+
 function GlanceLogo() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -42,14 +53,14 @@ function StreamingText({ text }) {
           return (
             <div key={i} className="flex gap-2 fade-in">
               <span style={{ color: 'rgb(139,92,246)', flexShrink: 0, marginTop: '1px' }}>•</span>
-              <span style={{ color: 'rgba(255,255,255,0.88)', lineHeight: '1.55' }}>{part.slice(1).trim()}</span>
+              <span style={{ color: 'rgba(255,255,255,0.88)', lineHeight: '1.55' }}>{parseInline(part.slice(1).trim())}</span>
             </div>
           );
         }
         if (part.trim()) {
           return (
             <p key={i} className="fade-in" style={{ color: 'rgba(255,255,255,0.75)', lineHeight: '1.55' }}>
-              {part}
+              {parseInline(part)}
             </p>
           );
         }
