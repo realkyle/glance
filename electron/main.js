@@ -250,22 +250,65 @@ ipcMain.on('region-cancel', () => {
 
 ipcMain.on('close-window', () => win?.hide());
 
+function animateBounds(win, from, to, duration, easing) {
+  return new Promise(resolve => {
+    const start = Date.now();
+    const tick = () => {
+      const t = Math.min((Date.now() - start) / duration, 1);
+      const e = easing(t);
+      win.setBounds({
+        x:      Math.round(from.x      + (to.x      - from.x)      * e),
+        y:      Math.round(from.y      + (to.y      - from.y)      * e),
+        width:  Math.round(from.width  + (to.width  - from.width)  * e),
+        height: Math.round(from.height + (to.height - from.height) * e),
+      });
+      if (t < 1) setTimeout(tick, 16);
+      else resolve();
+    };
+    tick();
+  });
+}
+
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+
 let savedBounds = null;
-ipcMain.on('collapse-window', () => {
+ipcMain.on('collapse-window', async () => {
   savedBounds = win.getBounds();
   win.setMinimumSize(1, 1);
-  const collapsedWidth = 220;
-  const collapsedHeight = 52;
-  win.setBounds({
+  const collapsedWidth = 220, collapsedHeight = 52;
+
+  // Stage 1: slide width in anchored to right edge, keeping full height
+  const afterWidth = {
     x: savedBounds.x + savedBounds.width - collapsedWidth,
     y: savedBounds.y,
     width: collapsedWidth,
-    height: collapsedHeight,
-  });
+    height: savedBounds.height,
+  };
+  await animateBounds(win, savedBounds, afterWidth, 160, easeOutCubic);
+
+  // Stage 2: squish height down into pill
+  const afterHeight = { ...afterWidth, height: collapsedHeight };
+  await animateBounds(win, afterWidth, afterHeight, 140, easeOutCubic);
 });
-ipcMain.on('expand-window', () => {
+
+ipcMain.on('expand-window', async () => {
+  if (!savedBounds) return;
+  const from = win.getBounds();
+  win.setMinimumSize(1, 1);
+
+  // Stage 1: slide width out, anchored to the right edge
+  const afterWidth = {
+    x: savedBounds.x,
+    y: from.y,
+    width: savedBounds.width,
+    height: from.height,
+  };
+  await animateBounds(win, from, afterWidth, 260, easeOutCubic);
+
+  // Stage 2: expand height down
+  await animateBounds(win, afterWidth, savedBounds, 220, easeOutCubic);
+
   win.setMinimumSize(300, 400);
-  if (savedBounds) win.setBounds(savedBounds);
 });
 
 app.on('will-quit', () => globalShortcut.unregisterAll());
