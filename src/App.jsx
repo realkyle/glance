@@ -86,6 +86,20 @@ function RegionIcon() {
   );
 }
 
+function MicIcon({ active }) {
+  return active ? (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10a7 7 0 0 0 14 0M12 19v3M9 22h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
+    </svg>
+  ) : (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+      <rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="2" />
+      <path d="M5 10a7 7 0 0 0 14 0M12 19v3M9 22h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function NewChatIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -128,9 +142,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [question, setQuestion] = useState('');
+  const [isListening, setIsListening] = useState(false);
   const streamRef = useRef('');
   const abortRef = useRef(null);
   const scrollRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   const sendToAPI = useCallback(async (msgs) => {
     if (!API_KEY) { setError('No API key. Add VITE_ANTHROPIC_API_KEY to .env'); return; }
@@ -241,12 +257,49 @@ export default function App() {
     await sendToAPI(next);
   }, [question, loading, messages, sendToAPI]);
 
+  const toggleVoice = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { setError('Speech recognition not available'); return; }
+
+    const recognition = new SR();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => setIsListening(true);
+
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+      setQuestion(transcript);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+
+    recognition.onerror = (e) => {
+      setIsListening(false);
+      recognitionRef.current = null;
+      if (e.error !== 'aborted') setError(`Mic error: ${e.error}`);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [isListening]);
+
   const handleNewChat = useCallback(() => {
     abortRef.current?.abort();
+    recognitionRef.current?.stop();
     setMessages([]);
     setStreaming('');
     setError('');
     setLoading(false);
+    setIsListening(false);
   }, []);
 
   useEffect(() => {
@@ -471,7 +524,7 @@ export default function App() {
           <input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder={hasMessages ? 'Ask a follow-up…' : 'Capture to start…'}
+            placeholder={isListening ? 'Listening…' : hasMessages ? 'Ask a follow-up…' : 'Capture to start…'}
             disabled={loading}
             style={{
               flex: 1,
@@ -487,6 +540,28 @@ export default function App() {
             onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.4)'; }}
             onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
           />
+          <button
+            type="button"
+            onClick={toggleVoice}
+            className={isListening ? 'mic-listening' : ''}
+            title={isListening ? 'Stop listening' : 'Voice input'}
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '8px 10px',
+              color: 'rgba(255,255,255,0.4)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s',
+              flexShrink: 0,
+              WebkitAppRegion: 'no-drag',
+            }}
+          >
+            <MicIcon active={isListening} />
+          </button>
           <button
             type="submit"
             disabled={!hasMessages || !question.trim() || loading}

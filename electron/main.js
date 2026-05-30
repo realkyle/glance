@@ -86,6 +86,10 @@ function createWindow() {
 
   win.setAlwaysOnTop(true, 'screen-saver');
 
+  win.webContents.session.setPermissionRequestHandler((_, permission, callback) => {
+    callback(permission === 'media');
+  });
+
   win.on('close', (e) => {
     if (!app.isQuiting) {
       e.preventDefault();
