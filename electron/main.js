@@ -6,6 +6,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 let win;
 let tray;
+let selectorWin;
 
 // Build a purple circle PNG at runtime — no icon file needed
 function crc32(buf) {
@@ -100,12 +101,59 @@ function createWindow() {
 }
 
 async function captureScreen() {
+  const { bounds, scaleFactor } = screen.getPrimaryDisplay();
   const sources = await desktopCapturer.getSources({
     types: ['screen'],
-    thumbnailSize: { width: 1920, height: 1080 },
+    thumbnailSize: {
+      width: Math.round(bounds.width * scaleFactor),
+      height: Math.round(bounds.height * scaleFactor),
+    },
   });
   if (!sources.length) throw new Error('No screen sources found');
   return sources[0].thumbnail.toDataURL();
+}
+
+async function captureRegion(region) {
+  const { bounds, scaleFactor } = screen.getPrimaryDisplay();
+  const sources = await desktopCapturer.getSources({
+    types: ['screen'],
+    thumbnailSize: {
+      width: Math.round(bounds.width * scaleFactor),
+      height: Math.round(bounds.height * scaleFactor),
+    },
+  });
+  if (!sources.length) throw new Error('No screen sources found');
+  const cropped = sources[0].thumbnail.crop({
+    x: Math.round(region.x * scaleFactor),
+    y: Math.round(region.y * scaleFactor),
+    width: Math.round(region.width * scaleFactor),
+    height: Math.round(region.height * scaleFactor),
+  });
+  return cropped.toDataURL();
+}
+
+function openRegionSelector() {
+  win.hide();
+  const { bounds } = screen.getPrimaryDisplay();
+  selectorWin = new BrowserWindow({
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    movable: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'selector-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  selectorWin.setAlwaysOnTop(true, 'screen-saver');
+  selectorWin.loadFile(path.join(__dirname, 'selector.html'));
 }
 
 app.whenReady().then(() => {
@@ -130,6 +178,30 @@ app.whenReady().then(() => {
 
 ipcMain.handle('capture-screen', async () => {
   return await captureScreen();
+});
+
+ipcMain.on('open-region-selector', () => openRegionSelector());
+
+ipcMain.on('region-selected', async (_, region) => {
+  selectorWin?.close();
+  selectorWin = null;
+  await new Promise(r => setTimeout(r, 120));
+  try {
+    const dataUrl = await captureRegion(region);
+    win.show();
+    win.focus();
+    win.webContents.send('screenshot', dataUrl);
+  } catch (err) {
+    win.show();
+    win.webContents.send('screenshot-error', err.message);
+  }
+});
+
+ipcMain.on('region-cancel', () => {
+  selectorWin?.close();
+  selectorWin = null;
+  win.show();
+  win.focus();
 });
 
 ipcMain.on('close-window', () => win?.hide());

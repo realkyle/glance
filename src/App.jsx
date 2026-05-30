@@ -44,6 +44,14 @@ function CaptureIcon() {
   );
 }
 
+function RegionIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 function StreamingText({ text }) {
   const parts = text.split(/(\•[^\•\n]+)/g);
   return (
@@ -282,14 +290,14 @@ export default function App() {
         </div>
       </div>
 
-      {/* Capture button */}
-      <div style={{ padding: '12px 16px 10px', flexShrink: 0 }}>
+      {/* Capture buttons */}
+      <div style={{ padding: '12px 16px 10px', flexShrink: 0, display: 'flex', gap: '8px' }}>
         <button
           className="btn-capture"
           onClick={handleCapture}
           disabled={loading}
           style={{
-            width: '100%',
+            flex: 1,
             padding: '10px',
             borderRadius: '10px',
             border: '1px solid rgba(139,92,246,0.4)',
@@ -310,7 +318,32 @@ export default function App() {
           }}
         >
           <CaptureIcon />
-          {loading ? 'Analyzing…' : hasCapture ? 'Re-capture Screen' : 'Capture Screen'}
+          {loading ? 'Analyzing…' : 'Full Screen'}
+        </button>
+        <button
+          onClick={() => !loading && window.electronAPI?.openRegionSelector()}
+          disabled={loading}
+          title="Select a region of the screen"
+          style={{
+            padding: '10px 12px',
+            borderRadius: '10px',
+            border: '1px solid rgba(139,92,246,0.25)',
+            background: loading ? 'rgba(139,92,246,0.04)' : 'rgba(139,92,246,0.08)',
+            color: loading ? 'rgba(139,92,246,0.3)' : 'rgb(167,139,250)',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '5px',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.15s ease',
+            WebkitAppRegion: 'no-drag',
+          }}
+        >
+          <RegionIcon />
+          Region
         </button>
       </div>
 
