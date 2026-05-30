@@ -34,17 +34,26 @@ function buildIconPNG(size) {
   ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4);
   ihdr[8] = 8; ihdr[9] = 6; // RGBA
   const raw = Buffer.alloc(size * (1 + size * 4));
+  const cx = size / 2 - 0.5, cy = size / 2 - 0.5;
+  const outerR = size / 2 - 1;
+  const irisR = size * 0.28;
+  const pupilR = size * 0.13;
+  const glintR = size * 0.07;
+  const glintX = cx + size * 0.1, glintY = cy - size * 0.1;
   for (let y = 0; y < size; y++) {
     const row = y * (1 + size * 4);
     raw[row] = 0;
     for (let x = 0; x < size; x++) {
       const px = row + 1 + x * 4;
-      const dx = x - size / 2 + 0.5, dy = y - size / 2 + 0.5;
-      const inside = Math.sqrt(dx * dx + dy * dy) < size / 2 - 0.5;
-      raw[px] = inside ? 0x8b : 0;
-      raw[px + 1] = inside ? 0x5c : 0;
-      raw[px + 2] = inside ? 0xf6 : 0;
-      raw[px + 3] = inside ? 255 : 0;
+      const dx = x - cx, dy = y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const glintDist = Math.sqrt((x - glintX) ** 2 + (y - glintY) ** 2);
+      let r = 0, g = 0, b = 0, a = 0;
+      if (dist < outerR) { r = 0x8b; g = 0x5c; b = 0xf6; a = 200; } // purple base
+      if (dist < irisR)  { r = 0x6d; g = 0x28; b = 0xd9; a = 255; } // darker iris
+      if (dist < pupilR) { r = 0x0a; g = 0x05; b = 0x1a; a = 255; } // near-black pupil
+      if (glintDist < glintR) { r = 255; g = 255; b = 255; a = 220; } // white glint
+      raw[px] = r; raw[px + 1] = g; raw[px + 2] = b; raw[px + 3] = a;
     }
   }
   return Buffer.concat([sig, pngChunk('IHDR', ihdr), pngChunk('IDAT', zlib.deflateSync(raw)), pngChunk('IEND', Buffer.alloc(0))]);

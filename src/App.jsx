@@ -53,9 +53,14 @@ function parseInline(text) {
 function GlanceLogo({ size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="4" fill="rgb(139,92,246)" />
-      <circle cx="12" cy="12" r="9" stroke="rgb(139,92,246)" strokeWidth="1.5" strokeDasharray="3 2" opacity="0.5" />
-      <circle cx="12" cy="12" r="11" stroke="rgb(139,92,246)" strokeWidth="0.75" opacity="0.2" />
+      {/* outer lens curve */}
+      <path d="M2 12 C6 5, 18 5, 22 12 C18 19, 6 19, 2 12 Z" stroke="rgb(139,92,246)" strokeWidth="1.5" strokeLinejoin="round" fill="rgba(139,92,246,0.08)" />
+      {/* iris */}
+      <circle cx="12" cy="12" r="3.8" stroke="rgb(139,92,246)" strokeWidth="1.4" fill="rgba(139,92,246,0.12)" />
+      {/* pupil */}
+      <circle cx="12" cy="12" r="1.6" fill="rgb(139,92,246)" />
+      {/* specular highlight */}
+      <circle cx="13.5" cy="10.5" r="0.7" fill="rgba(255,255,255,0.6)" />
     </svg>
   );
 }
@@ -155,6 +160,7 @@ export default function App() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const streamRef = useRef('');
+  const questionRef = useRef('');
   const abortRef = useRef(null);
   const scrollRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -247,6 +253,7 @@ export default function App() {
       return next;
     });
     setQuestion('');
+    questionRef.current = '';
   }, [sendToAPI]);
 
   const handleCapture = useCallback(async () => {
@@ -324,7 +331,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    window.electronAPI?.onScreenshot((dataUrl) => addCapture(dataUrl, ''));
+    window.electronAPI?.onScreenshot((dataUrl) => addCapture(dataUrl, questionRef.current));
     window.electronAPI?.onScreenshotError((msg) => setError(msg));
   }, [addCapture]);
 
@@ -596,8 +603,8 @@ export default function App() {
           )}
           <input
             value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder={isTranscribing ? 'Transcribing…' : isListening ? 'Recording… click mic to stop' : hasMessages ? 'Ask a follow-up…' : 'Capture to start…'}
+            onChange={(e) => { setQuestion(e.target.value); questionRef.current = e.target.value; }}
+            placeholder={isTranscribing ? 'Transcribing…' : isListening ? 'Recording… click mic to stop' : hasMessages ? 'Ask a follow-up…' : 'Ask something, then capture…'}
             disabled={loading}
             style={{
               flex: 1,
