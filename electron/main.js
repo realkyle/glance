@@ -172,6 +172,19 @@ function openRegionSelector() {
   selectorWin.loadFile(path.join(__dirname, 'selector.html'));
 }
 
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    }
+  });
+}
+
 app.whenReady().then(() => {
   createWindow();
   createTray();
