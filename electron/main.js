@@ -1,41 +1,8 @@
 const { app, BrowserWindow, ipcMain, globalShortcut, desktopCapturer, screen, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const zlib = require('zlib');
-const { spawn } = require('child_process');
 
 const isDev = process.env.NODE_ENV === 'development';
-
-let voiceProcess = null;
-
-const VOICE_SCRIPT = `
-Add-Type -AssemblyName System.Speech
-$engine = New-Object System.Speech.Recognition.SpeechRecognitionEngine
-$engine.LoadGrammar([System.Speech.Recognition.DictationGrammar]::new())
-$engine.SetInputToDefaultAudioDevice()
-$engine.InitialSilenceTimeout = [TimeSpan]::FromSeconds(8)
-
-Register-ObjectEvent -InputObject $engine -EventName SpeechHypothesized -SourceIdentifier 'Hyp'
-Register-ObjectEvent -InputObject $engine -EventName SpeechRecognized    -SourceIdentifier 'Rec'
-Register-ObjectEvent -InputObject $engine -EventName RecognizeCompleted   -SourceIdentifier 'Done'
-
-$engine.RecognizeAsync([System.Speech.Recognition.RecognizeMode]::Multiple)
-
-$deadline = [DateTime]::Now.AddSeconds(30)
-$running = $true
-while ($running -and [DateTime]::Now -lt $deadline) {
-    $evt = Wait-Event -Timeout 0.05
-    if ($evt) {
-        Remove-Event -EventIdentifier $evt.EventIdentifier
-        switch ($evt.SourceIdentifier) {
-            'Hyp'  { [Console]::WriteLine('INTERIM:' + $evt.SourceArgs[1].Result.Text); [Console]::Out.Flush() }
-            'Rec'  { [Console]::WriteLine('FINAL:'   + $evt.SourceArgs[1].Result.Text); [Console]::Out.Flush() }
-            'Done' { $running = $false }
-        }
-    }
-}
-$engine.RecognizeAsyncStop()
-[Console]::WriteLine('DONE:'); [Console]::Out.Flush()
-`;
 
 let win;
 let tray;
@@ -103,13 +70,16 @@ function createWindow() {
   win = new BrowserWindow({
     width: 400,
     height: 560,
+    minWidth: 300,
+    minHeight: 400,
     x: screenWidth - 420,
     y: 40,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
     skipTaskbar: true,
-    resizable: false,
+    resizable: true,
+    backgroundColor: '#00000000',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -227,27 +197,6 @@ async function captureWithHide() {
   return dataUrl;
 }
 
-ipcMain.on('start-voice', (event) => {
-  voiceProcess = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', VOICE_SCRIPT]);
-  let buf = '';
-  voiceProcess.stdout.on('data', (data) => {
-    buf += data.toString();
-    const lines = buf.split('\n');
-    buf = lines.pop();
-    for (const line of lines) {
-      const t = line.trim();
-      if (t.startsWith('INTERIM:')) event.sender.send('voice-interim', t.slice(8));
-      else if (t.startsWith('FINAL:'))   event.sender.send('voice-final',   t.slice(6));
-      else if (t.startsWith('DONE:'))    event.sender.send('voice-done');
-    }
-  });
-  voiceProcess.on('close', () => { voiceProcess = null; event.sender.send('voice-done'); });
-});
-
-ipcMain.on('cancel-voice', () => {
-  voiceProcess?.kill();
-  voiceProcess = null;
-});
 
 ipcMain.handle('capture-screen', async () => {
   return await captureWithHide();
@@ -278,7 +227,24 @@ ipcMain.on('region-cancel', () => {
 });
 
 ipcMain.on('close-window', () => win?.hide());
-ipcMain.on('minimize-window', () => win?.minimize());
+
+let savedBounds = null;
+ipcMain.on('collapse-window', () => {
+  savedBounds = win.getBounds();
+  win.setMinimumSize(1, 1);
+  const collapsedWidth = 220;
+  const collapsedHeight = 52;
+  win.setBounds({
+    x: savedBounds.x + savedBounds.width - collapsedWidth,
+    y: savedBounds.y,
+    width: collapsedWidth,
+    height: collapsedHeight,
+  });
+});
+ipcMain.on('expand-window', () => {
+  win.setMinimumSize(300, 400);
+  if (savedBounds) win.setBounds(savedBounds);
+});
 
 app.on('will-quit', () => globalShortcut.unregisterAll());
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
+const OPENAI_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 
 const SYSTEM_PROMPT = `You are Glance — a real-time AI assistant embedded in the user's screen overlay.
 
@@ -151,9 +152,13 @@ export default function App() {
   const [error, setError] = useState('');
   const [question, setQuestion] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const streamRef = useRef('');
   const abortRef = useRef(null);
   const scrollRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
   const sendToAPI = useCallback(async (msgs) => {
     if (!API_KEY) { setError('No API key. Add VITE_ANTHROPIC_API_KEY to .env'); return; }
@@ -183,7 +188,6 @@ export default function App() {
           'Content-Type': 'application/json',
           'x-api-key': API_KEY,
           'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'prompt-caching-1',
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
@@ -265,38 +269,58 @@ export default function App() {
     await sendToAPI(next);
   }, [question, loading, messages, sendToAPI]);
 
-  const voiceAccumRef = useRef('');
-
-  const toggleVoice = useCallback(() => {
+  const toggleVoice = useCallback(async () => {
     if (isListening) {
-      window.electronAPI?.cancelVoice();
-      setIsListening(false);
+      mediaRecorderRef.current?.stop();
       return;
     }
-    voiceAccumRef.current = '';
-    setIsListening(true);
-    window.electronAPI?.startVoice();
-  }, [isListening]);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      chunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
 
-  useEffect(() => {
-    window.electronAPI?.onVoiceInterim(t => {
-      setQuestion(voiceAccumRef.current ? voiceAccumRef.current + ' ' + t : t);
-    });
-    window.electronAPI?.onVoiceFinal(t => {
-      voiceAccumRef.current = voiceAccumRef.current ? voiceAccumRef.current + ' ' + t : t;
-      setQuestion(voiceAccumRef.current);
-    });
-    window.electronAPI?.onVoiceDone(() => setIsListening(false));
-  }, []);
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        setIsListening(false);
+        setIsTranscribing(true);
+        try {
+          const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          const formData = new FormData();
+          formData.append('file', blob, 'audio.webm');
+          formData.append('model', 'whisper-1');
+          const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.text) setQuestion(prev => prev ? prev + ' ' + data.text : data.text);
+          else if (data.error) setError('Whisper: ' + data.error.message);
+        } catch (err) {
+          setError('Transcription failed: ' + err.message);
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      recorder.start();
+      setIsListening(true);
+    } catch {
+      setError('Microphone access denied');
+    }
+  }, [isListening]);
 
   const handleNewChat = useCallback(() => {
     abortRef.current?.abort();
-    window.electronAPI?.cancelVoice();
+    mediaRecorderRef.current?.stop();
     setMessages([]);
     setStreaming('');
     setError('');
     setLoading(false);
     setIsListening(false);
+    setIsTranscribing(false);
   }, []);
 
   useEffect(() => {
@@ -311,10 +335,57 @@ export default function App() {
   const isEmpty = messages.length === 0 && !loading && !error;
   const hasMessages = messages.length > 0;
 
+  if (isCollapsed) {
+    return (
+      <div style={{
+        width: '100vw',
+        height: '100vh',
+        background: 'rgba(10,10,15,0.92)',
+        backdropFilter: 'blur(24px)',
+        borderRadius: '999px',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '0 14px',
+        userSelect: 'none',
+        WebkitAppRegion: 'drag',
+      }}>
+        <div
+          onClick={() => { setIsCollapsed(false); window.electronAPI?.expandWindow(); }}
+          title="Expand"
+          style={{
+            width: '30px',
+            height: '30px',
+            borderRadius: '50%',
+            background: 'rgba(139,92,246,0.15)',
+            border: '1px solid rgba(139,92,246,0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'all 0.15s',
+            WebkitAppRegion: 'no-drag',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.28)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.6)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.35)'; }}
+        >
+          <GlanceLogo size={14} />
+        </div>
+        <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.01em' }}>
+          Glance
+        </span>
+        {loading && <Spinner />}
+      </div>
+    );
+  }
+
   return (
     <div style={{
-      width: '400px',
-      height: '560px',
+      width: '100vw',
+      height: '100vh',
       background: 'rgba(10, 10, 15, 0.92)',
       backdropFilter: 'blur(24px)',
       borderRadius: '16px',
@@ -350,9 +421,9 @@ export default function App() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', WebkitAppRegion: 'no-drag' }}>
           <button
-            onClick={() => window.electronAPI?.minimizeWindow()}
+            onClick={() => { setIsCollapsed(true); window.electronAPI?.collapseWindow(); }}
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', color: 'rgba(255,255,255,0.55)', width: '22px', height: '22px', borderRadius: '50%', fontSize: '14px', lineHeight: 1, transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-            title="Minimize"
+            title="Collapse"
             onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
           >−</button>
@@ -526,7 +597,7 @@ export default function App() {
           <input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder={isListening ? 'Listening…' : hasMessages ? 'Ask a follow-up…' : 'Capture to start…'}
+            placeholder={isTranscribing ? 'Transcribing…' : isListening ? 'Recording… click mic to stop' : hasMessages ? 'Ask a follow-up…' : 'Capture to start…'}
             disabled={loading}
             style={{
               flex: 1,
@@ -545,15 +616,16 @@ export default function App() {
           <button
             type="button"
             onClick={toggleVoice}
+            disabled={isTranscribing}
             className={isListening ? 'mic-listening' : ''}
-            title={isListening ? 'Stop listening' : 'Voice input'}
+            title={isListening ? 'Stop recording' : isTranscribing ? 'Transcribing…' : 'Voice input'}
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: '8px',
               padding: '8px 10px',
-              color: 'rgba(255,255,255,0.4)',
-              cursor: 'pointer',
+              color: isTranscribing ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.4)',
+              cursor: isTranscribing ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
