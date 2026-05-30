@@ -24,12 +24,13 @@ A working Electron desktop app with:
 - **Conversation memory** — captures and follow-ups chain into a persistent chat thread; Claude sees all prior messages and images
 - **New Chat button** — lives in the input bar (icon-only); clears conversation and resets state
 - **Voice input** — mic button records audio via `getUserMedia` + `MediaRecorder`; on stop, audio is POSTed to OpenAI Whisper API (`whisper-1`) for accurate transcription
-- **Collapse to pill** — `−` button shrinks the window to a 220×52px floating pill anchored to the top-right; purple circle on pill restores previous bounds; rest of pill is draggable
-- **System tray** — closing the window hides to tray (eye icon generated at runtime); left-click toggles show/hide; right-click → Quit
+- **Collapse to pill** — `−` button animates the window in two stages (width in → height down) to a 220×52px floating pill; expand reverses (width out → height down); both use `easeOutCubic` at ~300ms total; purple circle on pill restores previous bounds; rest of pill is draggable
+- **System tray** — closing the window hides to tray (eye icon generated at runtime); left-click toggles show/hide; right-click → Quit; `app.requestSingleInstanceLock()` prevents multiple tray icons when the app is launched more than once
 - **Eye/lens logo** — SVG eye icon in the app header and collapsed pill; matching `.ico` generated at build time (16/32/48/256px) for the `.exe` and tray
 - **Markdown rendering** — `**bold**` and `*italic*` render properly in responses
 - **Portable `.exe` build** — single file, ~92MB, no installer needed
 - **GitHub Actions CI** — pushes to `v*` tags build Windows `.exe` and Mac `.dmg` in parallel and attach to a GitHub Release
+- **Marketing website** — `website/index.html` static site ready for Vercel deployment; dark/purple design matching the app; hero, features grid, how-it-works, download CTA; pill navbar, scroll-reveal animations, Space Grotesk headings, purple accent text
 
 ---
 
@@ -66,6 +67,8 @@ glance/
 │   ├── App.jsx              # All React UI — chat thread, capture buttons, voice, streaming
 │   ├── main.jsx             # React entry
 │   └── index.css            # Tailwind import + custom animations
+├── website/
+│   └── index.html           # Marketing landing page — deploy root dir to Vercel
 ├── logo.svg                 # Standalone eye/lens logo for README + website
 ├── index.html
 ├── vite.config.js
@@ -157,7 +160,19 @@ npm run build     # generates assets/icon.ico, builds Vite, produces release/Gla
 **Problem:** `win.setSize()` sometimes fails to restore the previous size on transparent frameless windows.  
 **Fix:** Use `win.getBounds()` / `win.setBounds()` which saves and restores x, y, width, height atomically.
 
-### 11. `WebkitAppRegion: drag` overrides CSS cursor
+### 11. Multiple tray icons when launching multiple instances
+**Problem:** Running `npm run dev` a second time (or if the app restarts) creates a new Electron instance alongside the existing one, each with its own tray icon.  
+**Fix:** `app.requestSingleInstanceLock()` at startup — the second instance immediately calls `app.quit()` and the first instance's window is focused instead.
+
+---
+
+### 12. Collapse animation passes through a circular/bubble shape if height shrinks first
+**Problem:** Animating height before width makes the window pass through a near-square intermediate (e.g. 400×400px) which, combined with the app's rounded corners, looks like a large bubble.  
+**Fix:** Shrink width first (to 220px, keeping full height), then shrink height (to 52px). The narrow-column intermediate never looks circular.
+
+---
+
+### 13. `WebkitAppRegion: drag` overrides CSS cursor
 **Problem:** Setting `cursor: grab` on a drag region has no effect — Electron overrides it.  
 **Fix:** Not yet solved cleanly. `win.startMoving()` approach caused uncaught exceptions. Left as default cursor for now.
 
@@ -169,7 +184,7 @@ See `FEATURES.md` for the full feature roadmap.
 
 **Highest priority next work:**
 1. **Demo video** — record a 30-60 second Loom: hotkey → screenshot → streaming response → region select → voice follow-up. Most important deliverable for the Cluely application.
-2. **Marketing website** — a simple landing page at `realkyle.github.io/glance` (GitHub Pages) to advertise the product, showcase features, and provide a download link for the `.exe`. Primary submission artifact alongside the demo video.
+2. **Deploy website to Vercel** — import `realkyle/glance` repo on Vercel, set root directory to `website/`, deploy. Add GIFs to the feature cards once the demo video is recorded.
 3. **Deepgram streaming voice** — replace batch Whisper with Deepgram WebSocket for real-time word-by-word transcription. Same UI, better feel.
 4. **Diff mode** — capture before/after screenshots and ask Claude "what changed?"
 5. **Mac build** — CI already produces `.dmg` on `v*` tags; needs testing on a Mac.

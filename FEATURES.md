@@ -84,10 +84,9 @@ Mic button records audio via `getUserMedia` + `MediaRecorder` in the renderer. O
 ---
 
 ### 9. Collapse to Pill
-The `−` button shrinks the window to a 220×52px floating pill anchored to the top-right corner of the previous window position. The purple circle on the left restores the window to its exact previous size and position. The rest of the pill is draggable.
+The `−` button animates the window to a 220×52px floating pill in two stages: width slides in first (keeping full height), then height squishes down. Expand reverses the sequence. Both use `easeOutCubic` (~300ms total). The purple circle on the left restores the window to its exact previous size and position. The rest of the pill is draggable.
 
 **Potential improvements:**
-- Smooth animation on collapse/expand
 - Show a brief preview of the last response on hover
 
 ---
@@ -106,7 +105,7 @@ SVG eye icon (outer lens curve, iris, pupil, specular highlight) used in the app
 ---
 
 ### 12. System Tray
-The Glance window hides to tray instead of quitting when closed. Tray icon is an eye PNG generated at runtime — no icon file dependency. Left-click toggles show/hide; right-click → Quit.
+The Glance window hides to tray instead of quitting when closed. Tray icon is an eye PNG generated at runtime — no icon file dependency. Left-click toggles show/hide; right-click → Quit. `app.requestSingleInstanceLock()` ensures only one instance (and one tray icon) ever runs at a time.
 
 **Potential improvements:**
 - Tray icon animates while Claude is thinking
@@ -129,18 +128,26 @@ A workflow at `.github/workflows/build.yml` triggers on `v*` tags. Two parallel 
 
 ---
 
-## In Progress
+### 15. Marketing Website
+Static landing page at `website/index.html`, ready to deploy to Vercel (set root directory to `website/`). Dark/purple design matching the app aesthetic.
 
-### Marketing Website
-A landing page to advertise Glance, showcase features, and provide a download link for the `.exe`. Primary submission artifact for the Cluely application alongside the demo video.
+**Includes:**
+- Floating pill navbar with Features, How it works, GitHub, Releases tabs and an "In progress" badge
+- Hero with animated eye logo, two-button CTA, app mockup, and "Demo video coming soon" note
+- Features grid with full-width icon placeholders ready for GIFs
+- How it works 3-step section
+- Download CTA section
+- Scroll-reveal animations via IntersectionObserver
+- Space Grotesk headings, purple gradient accent text, dimmed second lines
 
-**Plan:**
-- Host on GitHub Pages at `realkyle.github.io/glance`
-- Sections: hero, feature highlights, download, tech stack
-- Use the `logo.svg` and brand purple (`rgb(139,92,246)`)
-- Link to the GitHub Releases page for the `.exe` download
+**Remaining:**
+- Deploy to Vercel
+- Add GIF demos to feature cards once demo video is recorded
+- Fill in Privacy Policy / Terms of Service / Cookie Policy pages
 
 ---
+
+## In Progress
 
 ## Potential Future Features
 
