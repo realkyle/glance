@@ -15,9 +15,9 @@ function parseInline(text) {
   });
 }
 
-function GlanceLogo() {
+function GlanceLogo({ size = 18 }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="4" fill="rgb(139,92,246)" />
       <circle cx="12" cy="12" r="9" stroke="rgb(139,92,246)" strokeWidth="1.5" strokeDasharray="3 2" opacity="0.5" />
       <circle cx="12" cy="12" r="11" stroke="rgb(139,92,246)" strokeWidth="0.75" opacity="0.2" />
@@ -47,7 +47,16 @@ function CaptureIcon() {
 function RegionIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-      <path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function NewChatIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+      <path d="M12 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -55,7 +64,7 @@ function RegionIcon() {
 function StreamingText({ text }) {
   const parts = text.split(/(\•[^\•\n]+)/g);
   return (
-    <div className="space-y-1.5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       {parts.map((part, i) => {
         if (part.startsWith('•')) {
           return (
@@ -67,7 +76,7 @@ function StreamingText({ text }) {
         }
         if (part.trim()) {
           return (
-            <p key={i} className="fade-in" style={{ color: 'rgba(255,255,255,0.75)', lineHeight: '1.55' }}>
+            <p key={i} className="fade-in" style={{ color: 'rgba(255,255,255,0.75)', lineHeight: '1.55', margin: 0 }}>
               {parseInline(part)}
             </p>
           );
@@ -78,31 +87,36 @@ function StreamingText({ text }) {
   );
 }
 
+// { role: 'user', text, screenshot? } | { role: 'assistant', text }
 export default function App() {
-  const [screenshot, setScreenshot] = useState(null);
-  const [response, setResponse] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [streaming, setStreaming] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [question, setQuestion] = useState('');
-  const [hasCapture, setHasCapture] = useState(false);
-  const responseRef = useRef('');
+  const streamRef = useRef('');
   const abortRef = useRef(null);
   const scrollRef = useRef(null);
 
-  const sendToClaudeStreaming = useCallback(async (imageDataUrl, userQ) => {
-    if (!API_KEY) {
-      setError('No API key. Add VITE_ANTHROPIC_API_KEY to .env');
-      return;
-    }
+  const sendToAPI = useCallback(async (msgs) => {
+    if (!API_KEY) { setError('No API key. Add VITE_ANTHROPIC_API_KEY to .env'); return; }
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
 
     setLoading(true);
     setError('');
-    setResponse('');
-    responseRef.current = '';
+    setStreaming('');
+    streamRef.current = '';
 
-    const base64 = imageDataUrl.split(',')[1];
+    const apiMessages = msgs.map(m => ({
+      role: m.role,
+      content: m.role === 'user'
+        ? [
+            ...(m.screenshot ? [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: m.screenshot.split(',')[1] } }] : []),
+            { type: 'text', text: m.text },
+          ]
+        : m.text,
+    }));
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -119,13 +133,7 @@ export default function App() {
           max_tokens: 1024,
           stream: true,
           system: SYSTEM_PROMPT,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: 'image/png', data: base64 } },
-              { type: 'text', text: userQ?.trim() || 'What do you see? Give me real-time suggestions.' },
-            ],
-          }],
+          messages: apiMessages,
         }),
       });
 
@@ -140,95 +148,110 @@ export default function App() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
+        for (const line of chunk.split('\n')) {
           if (!line.startsWith('data: ')) continue;
           const data = line.slice(6).trim();
           if (data === '[DONE]') continue;
           try {
             const parsed = JSON.parse(data);
             if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
-              responseRef.current += parsed.delta.text;
-              setResponse(responseRef.current);
+              streamRef.current += parsed.delta.text;
+              setStreaming(streamRef.current);
             }
           } catch {}
         }
       }
+
+      const finalText = streamRef.current;
+      setMessages(prev => [...prev, { role: 'assistant', text: finalText }]);
+      setStreaming('');
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        setError(err.message || 'Something went wrong');
-      }
+      if (err.name !== 'AbortError') setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const addCapture = useCallback((dataUrl, questionText) => {
+    const userMsg = {
+      role: 'user',
+      text: questionText?.trim() || 'What do you see? Give me real-time suggestions.',
+      screenshot: dataUrl,
+    };
+    setMessages(prev => {
+      const next = [...prev, userMsg];
+      sendToAPI(next);
+      return next;
+    });
+    setQuestion('');
+  }, [sendToAPI]);
+
   const handleCapture = useCallback(async () => {
+    if (loading) return;
     try {
       const dataUrl = await window.electronAPI.requestScreenshot();
-      setScreenshot(dataUrl);
-      setHasCapture(true);
-      await sendToClaudeStreaming(dataUrl, question);
+      addCapture(dataUrl, question);
     } catch (err) {
       setError(err.message || 'Screenshot failed');
     }
-  }, [question, sendToClaudeStreaming]);
+  }, [loading, question, addCapture]);
 
-  const handleAskFollowup = useCallback(async (e) => {
+  const handleFollowup = useCallback(async (e) => {
     e.preventDefault();
-    if (!screenshot || !question.trim() || loading) return;
-    await sendToClaudeStreaming(screenshot, question);
+    if (!question.trim() || loading || messages.length === 0) return;
+    const userMsg = { role: 'user', text: question.trim() };
+    const next = [...messages, userMsg];
+    setMessages(next);
     setQuestion('');
-  }, [screenshot, question, loading, sendToClaudeStreaming]);
+    await sendToAPI(next);
+  }, [question, loading, messages, sendToAPI]);
+
+  const handleNewChat = useCallback(() => {
+    abortRef.current?.abort();
+    setMessages([]);
+    setStreaming('');
+    setError('');
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    window.electronAPI?.onScreenshot((dataUrl) => {
-      setScreenshot(dataUrl);
-      setHasCapture(true);
-      sendToClaudeStreaming(dataUrl, '');
-    });
+    window.electronAPI?.onScreenshot((dataUrl) => addCapture(dataUrl, ''));
     window.electronAPI?.onScreenshotError((msg) => setError(msg));
-  }, [sendToClaudeStreaming]);
+  }, [addCapture]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [response]);
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, streaming]);
 
-  const isEmpty = !loading && !response && !error;
+  const isEmpty = messages.length === 0 && !loading && !error;
+  const hasMessages = messages.length > 0;
 
   return (
-    <div
-      style={{
-        width: '400px',
-        height: '560px',
-        background: 'rgba(10, 10, 15, 0.92)',
-        backdropFilter: 'blur(24px)',
-        borderRadius: '16px',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.04)',
+    <div style={{
+      width: '400px',
+      height: '560px',
+      background: 'rgba(10, 10, 15, 0.92)',
+      backdropFilter: 'blur(24px)',
+      borderRadius: '16px',
+      border: '1px solid rgba(255,255,255,0.08)',
+      boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.04)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      userSelect: 'none',
+    }}>
+
+      {/* Header */}
+      <div style={{
+        WebkitAppRegion: 'drag',
+        padding: '14px 16px 12px',
         display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        userSelect: 'none',
-      }}
-    >
-      {/* Header — drag region */}
-      <div
-        style={{
-          WebkitAppRegion: 'drag',
-          padding: '14px 16px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          flexShrink: 0,
-        }}
-      >
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        flexShrink: 0,
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <GlanceLogo />
           <span style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600, fontSize: '13px', letterSpacing: '0.01em' }}>
@@ -241,41 +264,42 @@ export default function App() {
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', WebkitAppRegion: 'no-drag' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', WebkitAppRegion: 'no-drag' }}>
+          {hasMessages && (
+            <button
+              onClick={handleNewChat}
+              title="New chat"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'rgba(255,255,255,0.3)',
+                padding: '4px 6px',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 500,
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
+            >
+              <NewChatIcon />
+              New
+            </button>
+          )}
           <button
             onClick={() => window.electronAPI?.minimizeWindow()}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'rgba(255,255,255,0.3)',
-              padding: '2px 4px',
-              borderRadius: '4px',
-              fontSize: '14px',
-              lineHeight: 1,
-              WebkitAppRegion: 'no-drag',
-            }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: '2px 4px', borderRadius: '4px', fontSize: '14px', lineHeight: 1 }}
             title="Minimize"
-          >
-            −
-          </button>
+          >−</button>
           <button
             onClick={() => window.electronAPI?.closeWindow()}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'rgba(255,255,255,0.25)',
-              padding: '2px 4px',
-              borderRadius: '4px',
-              fontSize: '14px',
-              lineHeight: 1,
-              WebkitAppRegion: 'no-drag',
-            }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.25)', padding: '2px 4px', borderRadius: '4px', fontSize: '14px', lineHeight: 1 }}
             title="Close"
-          >
-            ✕
-          </button>
+          >✕</button>
         </div>
       </div>
 
@@ -286,24 +310,14 @@ export default function App() {
           onClick={handleCapture}
           disabled={loading}
           style={{
-            flex: 1,
-            padding: '10px',
-            borderRadius: '10px',
+            flex: 1, padding: '10px', borderRadius: '10px',
             border: '1px solid rgba(139,92,246,0.4)',
-            background: loading
-              ? 'rgba(139,92,246,0.08)'
-              : 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(109,40,217,0.22))',
+            background: loading ? 'rgba(139,92,246,0.08)' : 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(109,40,217,0.22))',
             color: loading ? 'rgba(139,92,246,0.5)' : 'rgb(196,167,255)',
-            fontSize: '13px',
-            fontWeight: 600,
+            fontSize: '13px', fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '7px',
-            letterSpacing: '0.01em',
-            transition: 'all 0.15s ease',
-            WebkitAppRegion: 'no-drag',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+            transition: 'all 0.15s ease', WebkitAppRegion: 'no-drag',
           }}
         >
           <CaptureIcon />
@@ -314,21 +328,14 @@ export default function App() {
           disabled={loading}
           title="Select a region of the screen"
           style={{
-            padding: '10px 12px',
-            borderRadius: '10px',
+            padding: '10px 12px', borderRadius: '10px',
             border: '1px solid rgba(139,92,246,0.25)',
             background: loading ? 'rgba(139,92,246,0.04)' : 'rgba(139,92,246,0.08)',
             color: loading ? 'rgba(139,92,246,0.3)' : 'rgb(167,139,250)',
-            fontSize: '12px',
-            fontWeight: 600,
+            fontSize: '12px', fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '5px',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease',
-            WebkitAppRegion: 'no-drag',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+            whiteSpace: 'nowrap', transition: 'all 0.15s ease', WebkitAppRegion: 'no-drag',
           }}
         >
           <RegionIcon />
@@ -336,61 +343,13 @@ export default function App() {
         </button>
       </div>
 
-      {/* Screenshot thumbnail */}
-      {screenshot && (
-        <div style={{ padding: '0 16px 10px', flexShrink: 0 }}>
-          <div style={{
-            borderRadius: '8px',
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.08)',
-            position: 'relative',
-            height: '72px',
-          }}>
-            <img
-              src={screenshot}
-              alt="screenshot"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: 0.7 }}
-            />
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(to right, rgba(10,10,15,0.3), transparent)',
-            }} />
-            <span style={{
-              position: 'absolute', bottom: '6px', left: '8px',
-              color: 'rgba(255,255,255,0.5)', fontSize: '10px', fontWeight: 500,
-            }}>
-              captured
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Chat thread */}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 8px', minHeight: 0 }}>
 
-      {/* Response area */}
-      <div
-        ref={scrollRef}
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '0 16px',
-          minHeight: 0,
-        }}
-      >
+        {/* Empty state */}
         {isEmpty && (
-          <div style={{
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-          }}>
-            <div style={{
-              width: '48px', height: '48px',
-              borderRadius: '50%',
-              background: 'rgba(139,92,246,0.08)',
-              border: '1px solid rgba(139,92,246,0.15)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <GlanceLogo />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
@@ -406,48 +365,67 @@ export default function App() {
           </div>
         )}
 
-        {error && (
-          <div style={{
-            padding: '10px 12px',
-            background: 'rgba(239,68,68,0.08)',
-            border: '1px solid rgba(239,68,68,0.2)',
-            borderRadius: '8px',
-            marginBottom: '10px',
-          }}>
-            <p style={{ color: 'rgb(252,165,165)', fontSize: '12px' }}>{error}</p>
+        {/* Message thread */}
+        {messages.map((msg, i) => {
+          if (msg.role === 'user') {
+            return (
+              <div key={i} style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', paddingLeft: '28px' }}>
+                <div style={{
+                  background: 'rgba(139,92,246,0.12)',
+                  border: '1px solid rgba(139,92,246,0.2)',
+                  borderRadius: '12px 12px 2px 12px',
+                  overflow: 'hidden',
+                  maxWidth: '100%',
+                }}>
+                  {msg.screenshot && (
+                    <img
+                      src={msg.screenshot}
+                      alt="capture"
+                      style={{ width: '100%', maxHeight: '72px', objectFit: 'cover', display: 'block', opacity: 0.7 }}
+                    />
+                  )}
+                  <p style={{ padding: '7px 11px', color: 'rgba(255,255,255,0.65)', fontSize: '12px', lineHeight: 1.5, margin: 0 }}>
+                    {msg.text}
+                  </p>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '16px', paddingRight: '4px' }}>
+              <div style={{ flexShrink: 0, marginTop: '2px' }}><GlanceLogo size={14} /></div>
+              <div style={{ fontSize: '13px', flex: 1 }}>
+                <StreamingText text={msg.text} />
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Streaming response */}
+        {streaming && (
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', paddingRight: '4px' }}>
+            <div style={{ flexShrink: 0, marginTop: '2px' }}><GlanceLogo size={14} /></div>
+            <div style={{ fontSize: '13px', flex: 1 }}>
+              <StreamingText text={streaming} />
+            </div>
           </div>
         )}
 
-        {response && (
-          <div style={{ paddingBottom: '12px' }}>
-            <div style={{
-              fontSize: '11px',
-              color: 'rgba(139,92,246,0.7)',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              marginBottom: '10px',
-            }}>
-              Glance suggests
-            </div>
-            <div style={{ fontSize: '13px' }}>
-              <StreamingText text={response} />
-            </div>
+        {/* Error */}
+        {error && (
+          <div style={{ padding: '10px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', marginBottom: '10px' }}>
+            <p style={{ color: 'rgb(252,165,165)', fontSize: '12px', margin: 0 }}>{error}</p>
           </div>
         )}
       </div>
 
-      {/* Follow-up input */}
-      <div style={{
-        padding: '10px 16px 14px',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        flexShrink: 0,
-      }}>
-        <form onSubmit={handleAskFollowup} style={{ display: 'flex', gap: '8px' }}>
+      {/* Input */}
+      <div style={{ padding: '10px 16px 14px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+        <form onSubmit={handleFollowup} style={{ display: 'flex', gap: '8px' }}>
           <input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder={hasCapture ? 'Ask a follow-up…' : 'Ask about the screen…'}
+            placeholder={hasMessages ? 'Ask a follow-up…' : 'Capture to start…'}
             disabled={loading}
             style={{
               flex: 1,
@@ -460,12 +438,12 @@ export default function App() {
               outline: 'none',
               WebkitAppRegion: 'no-drag',
             }}
-            onFocus={(e) => { e.target.style.borderColor = 'rgba(139,92,246,0.4)'; }}
-            onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+            onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.4)'; }}
+            onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; }}
           />
           <button
             type="submit"
-            disabled={!hasCapture || !question.trim() || loading}
+            disabled={!hasMessages || !question.trim() || loading}
             style={{
               background: 'rgba(139,92,246,0.2)',
               border: '1px solid rgba(139,92,246,0.3)',
@@ -474,8 +452,8 @@ export default function App() {
               color: 'rgb(196,167,255)',
               fontSize: '12px',
               fontWeight: 600,
-              cursor: (!hasCapture || !question.trim() || loading) ? 'not-allowed' : 'pointer',
-              opacity: (!hasCapture || !question.trim() || loading) ? 0.4 : 1,
+              cursor: (!hasMessages || !question.trim() || loading) ? 'not-allowed' : 'pointer',
+              opacity: (!hasMessages || !question.trim() || loading) ? 0.4 : 1,
               transition: 'opacity 0.15s',
               WebkitAppRegion: 'no-drag',
             }}
