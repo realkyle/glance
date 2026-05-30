@@ -1,8 +1,22 @@
 const { app, BrowserWindow, ipcMain, globalShortcut, desktopCapturer, screen, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const zlib = require('zlib');
+const { spawn } = require('child_process');
 
 const isDev = process.env.NODE_ENV === 'development';
+
+let voiceProcess = null;
+
+const VOICE_SCRIPT = `
+Add-Type -AssemblyName System.Speech
+$engine = New-Object System.Speech.Recognition.SpeechRecognitionEngine
+$engine.LoadGrammar([System.Speech.Recognition.DictationGrammar]::new())
+$engine.SetInputToDefaultAudioDevice()
+$engine.InitialSilenceTimeout = [TimeSpan]::FromSeconds(6)
+$engine.EndSilenceTimeoutAmbiguous = [TimeSpan]::FromSeconds(1.2)
+$result = $engine.Recognize([TimeSpan]::FromSeconds(20))
+if ($result) { Write-Output $result.Text } else { Write-Output '' }
+`;
 
 let win;
 let tray;
@@ -193,6 +207,21 @@ async function captureWithHide() {
   win.focus();
   return dataUrl;
 }
+
+ipcMain.handle('start-voice', () => {
+  return new Promise((resolve, reject) => {
+    voiceProcess = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', VOICE_SCRIPT]);
+    let output = '';
+    voiceProcess.stdout.on('data', d => { output += d.toString(); });
+    voiceProcess.on('close', () => { voiceProcess = null; resolve(output.trim()); });
+    voiceProcess.on('error', e => { voiceProcess = null; reject(e); });
+  });
+});
+
+ipcMain.on('cancel-voice', () => {
+  voiceProcess?.kill();
+  voiceProcess = null;
+});
 
 ipcMain.handle('capture-screen', async () => {
   return await captureWithHide();

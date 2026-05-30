@@ -146,7 +146,6 @@ export default function App() {
   const streamRef = useRef('');
   const abortRef = useRef(null);
   const scrollRef = useRef(null);
-  const recognitionRef = useRef(null);
 
   const sendToAPI = useCallback(async (msgs) => {
     if (!API_KEY) { setError('No API key. Add VITE_ANTHROPIC_API_KEY to .env'); return; }
@@ -257,44 +256,26 @@ export default function App() {
     await sendToAPI(next);
   }, [question, loading, messages, sendToAPI]);
 
-  const toggleVoice = useCallback(() => {
+  const toggleVoice = useCallback(async () => {
     if (isListening) {
-      recognitionRef.current?.stop();
+      window.electronAPI?.cancelVoice();
+      setIsListening(false);
       return;
     }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { setError('Speech recognition not available'); return; }
-
-    const recognition = new SR();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => setIsListening(true);
-
-    recognition.onresult = (e) => {
-      const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
-      setQuestion(transcript);
-    };
-
-    recognition.onend = () => {
+    setIsListening(true);
+    try {
+      const transcript = await window.electronAPI.startVoice();
+      if (transcript) setQuestion(transcript);
+    } catch {
+      setError('Voice recognition failed — check microphone');
+    } finally {
       setIsListening(false);
-      recognitionRef.current = null;
-    };
-
-    recognition.onerror = (e) => {
-      setIsListening(false);
-      recognitionRef.current = null;
-      if (e.error !== 'aborted') setError(`Mic error: ${e.error}`);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
+    }
   }, [isListening]);
 
   const handleNewChat = useCallback(() => {
     abortRef.current?.abort();
-    recognitionRef.current?.stop();
+    window.electronAPI?.cancelVoice();
     setMessages([]);
     setStreaming('');
     setError('');
