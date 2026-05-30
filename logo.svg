@@ -1,0 +1,12 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- background circle -->
+  <circle cx="40" cy="40" r="38" fill="#0a0a0f" stroke="rgba(139,92,246,0.3)" stroke-width="1.5"/>
+  <!-- outer lens curve -->
+  <path d="M10 40 C18 22, 62 22, 70 40 C62 58, 18 58, 10 40 Z" stroke="rgb(139,92,246)" stroke-width="2.2" stroke-linejoin="round" fill="rgba(139,92,246,0.08)"/>
+  <!-- iris ring -->
+  <circle cx="40" cy="40" r="13" stroke="rgb(139,92,246)" stroke-width="2" fill="rgba(139,92,246,0.12)"/>
+  <!-- pupil -->
+  <circle cx="40" cy="40" r="5.5" fill="rgb(139,92,246)"/>
+  <!-- specular highlight -->
+  <circle cx="44" cy="35" r="2.5" fill="rgba(255,255,255,0.65)"/>
+</svg>

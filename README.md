@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.svg" width="80" height="80" alt="Glance" />
+</p>
+
 # Glance
 
 A real-time AI screen overlay powered by Claude. Press a hotkey, get instant suggestions about what's on your screen.
