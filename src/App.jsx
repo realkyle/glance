@@ -251,7 +251,7 @@ export default function App() {
             border: '1px solid rgba(255,255,255,0.08)',
             fontFamily: 'monospace',
           }}>
-            ⌃⇧Space
+            ⌃⇧Space · ⌃⇧D
           </kbd>
           <button
             onClick={() => window.electronAPI?.minimizeWindow()}
@@ -404,10 +404,16 @@ export default function App() {
             }}>
               <GlanceLogo />
             </div>
-            <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px', textAlign: 'center', lineHeight: 1.6 }}>
-              Press <strong style={{ color: 'rgba(255,255,255,0.4)' }}>Ctrl+Shift+Space</strong><br />
-              or click Capture to get AI suggestions
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <kbd style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '5px', padding: '2px 7px', color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontFamily: 'monospace' }}>Ctrl+Shift+Space</kbd>
+                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px' }}>Full screen capture</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <kbd style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '5px', padding: '2px 7px', color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontFamily: 'monospace' }}>Ctrl+Shift+D</kbd>
+                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px' }}>Select a region</span>
+              </div>
+            </div>
           </div>
         )}
 
