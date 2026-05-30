@@ -12,10 +12,29 @@ Add-Type -AssemblyName System.Speech
 $engine = New-Object System.Speech.Recognition.SpeechRecognitionEngine
 $engine.LoadGrammar([System.Speech.Recognition.DictationGrammar]::new())
 $engine.SetInputToDefaultAudioDevice()
-$engine.InitialSilenceTimeout = [TimeSpan]::FromSeconds(6)
-$engine.EndSilenceTimeoutAmbiguous = [TimeSpan]::FromSeconds(1.2)
-$result = $engine.Recognize([TimeSpan]::FromSeconds(20))
-if ($result) { Write-Output $result.Text } else { Write-Output '' }
+$engine.InitialSilenceTimeout = [TimeSpan]::FromSeconds(8)
+
+Register-ObjectEvent -InputObject $engine -EventName SpeechHypothesized -SourceIdentifier 'Hyp'
+Register-ObjectEvent -InputObject $engine -EventName SpeechRecognized    -SourceIdentifier 'Rec'
+Register-ObjectEvent -InputObject $engine -EventName RecognizeCompleted   -SourceIdentifier 'Done'
+
+$engine.RecognizeAsync([System.Speech.Recognition.RecognizeMode]::Multiple)
+
+$deadline = [DateTime]::Now.AddSeconds(30)
+$running = $true
+while ($running -and [DateTime]::Now -lt $deadline) {
+    $evt = Wait-Event -Timeout 0.05
+    if ($evt) {
+        Remove-Event -EventIdentifier $evt.EventIdentifier
+        switch ($evt.SourceIdentifier) {
+            'Hyp'  { [Console]::WriteLine('INTERIM:' + $evt.SourceArgs[1].Result.Text); [Console]::Out.Flush() }
+            'Rec'  { [Console]::WriteLine('FINAL:'   + $evt.SourceArgs[1].Result.Text); [Console]::Out.Flush() }
+            'Done' { $running = $false }
+        }
+    }
+}
+$engine.RecognizeAsyncStop()
+[Console]::WriteLine('DONE:'); [Console]::Out.Flush()
 `;
 
 let win;
@@ -208,14 +227,21 @@ async function captureWithHide() {
   return dataUrl;
 }
 
-ipcMain.handle('start-voice', () => {
-  return new Promise((resolve, reject) => {
-    voiceProcess = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', VOICE_SCRIPT]);
-    let output = '';
-    voiceProcess.stdout.on('data', d => { output += d.toString(); });
-    voiceProcess.on('close', () => { voiceProcess = null; resolve(output.trim()); });
-    voiceProcess.on('error', e => { voiceProcess = null; reject(e); });
+ipcMain.on('start-voice', (event) => {
+  voiceProcess = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', VOICE_SCRIPT]);
+  let buf = '';
+  voiceProcess.stdout.on('data', (data) => {
+    buf += data.toString();
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for (const line of lines) {
+      const t = line.trim();
+      if (t.startsWith('INTERIM:')) event.sender.send('voice-interim', t.slice(8));
+      else if (t.startsWith('FINAL:'))   event.sender.send('voice-final',   t.slice(6));
+      else if (t.startsWith('DONE:'))    event.sender.send('voice-done');
+    }
   });
+  voiceProcess.on('close', () => { voiceProcess = null; event.sender.send('voice-done'); });
 });
 
 ipcMain.on('cancel-voice', () => {

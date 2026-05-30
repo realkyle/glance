@@ -256,22 +256,29 @@ export default function App() {
     await sendToAPI(next);
   }, [question, loading, messages, sendToAPI]);
 
-  const toggleVoice = useCallback(async () => {
+  const voiceAccumRef = useRef('');
+
+  const toggleVoice = useCallback(() => {
     if (isListening) {
       window.electronAPI?.cancelVoice();
       setIsListening(false);
       return;
     }
+    voiceAccumRef.current = '';
     setIsListening(true);
-    try {
-      const transcript = await window.electronAPI.startVoice();
-      if (transcript) setQuestion(transcript);
-    } catch {
-      setError('Voice recognition failed — check microphone');
-    } finally {
-      setIsListening(false);
-    }
+    window.electronAPI?.startVoice();
   }, [isListening]);
+
+  useEffect(() => {
+    window.electronAPI?.onVoiceInterim(t => {
+      setQuestion(voiceAccumRef.current ? voiceAccumRef.current + ' ' + t : t);
+    });
+    window.electronAPI?.onVoiceFinal(t => {
+      voiceAccumRef.current = voiceAccumRef.current ? voiceAccumRef.current + ' ' + t : t;
+      setQuestion(voiceAccumRef.current);
+    });
+    window.electronAPI?.onVoiceDone(() => setIsListening(false));
+  }, []);
 
   const handleNewChat = useCallback(() => {
     abortRef.current?.abort();
