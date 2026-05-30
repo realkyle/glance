@@ -1,0 +1,64 @@
+{
+  "name": "glance",
+  "version": "1.0.0",
+  "description": "Real-time AI screen overlay powered by Claude",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
+    "build": "vite build && electron-builder",
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/realkyle/glance.git"
+  },
+  "keywords": [],
+  "author": "Kyle Goto Hale",
+  "license": "MIT",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/realkyle/glance/issues"
+  },
+  "homepage": "https://github.com/realkyle/glance#readme",
+  "build": {
+    "appId": "com.realkyle.glance",
+    "productName": "Glance",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "autoprefixer": "^10.5.0",
+    "electron": "^42.3.0",
+    "postcss": "^8.5.15",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "tailwindcss": "^4.3.0",
+    "vite": "^8.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "concurrently": "^10.0.0",
+    "cross-env": "^7.0.3",
+    "electron-builder": "^26.8.1",
+    "wait-on": "^9.0.10"
+  }
+}
