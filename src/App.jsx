@@ -2,7 +2,41 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
-const SYSTEM_PROMPT = `You are Glance — a real-time AI assistant embedded in the user's screen overlay. When shown a screenshot, give concise, actionable, specific suggestions. Use 2-4 short bullet points (•). Be direct. No fluff. Focus on what's most immediately useful.`;
+const SYSTEM_PROMPT = `You are Glance — a real-time AI assistant embedded in the user's screen overlay.
+
+First, identify the context type on its own line exactly as one of:
+Mode: Code
+Mode: Browser
+Mode: Document
+Mode: Terminal
+Mode: Design
+Mode: Other
+
+Then give 2-4 concise bullet points (•) tailored to the context:
+- Code (editor, IDE): bugs, code quality, specific improvements, potential issues
+- Browser (web page, app): summarize content, highlight key info, suggest actions
+- Document (Word, Google Docs, PDF, spreadsheet): key insights, next actions, anything needing attention
+- Terminal (command line, shell output): explain output, identify errors, suggest next steps
+- Design (Figma, etc.): UX feedback, visual hierarchy, specific improvements
+- Other: general actionable suggestions
+
+Be direct and specific. No fluff. No preamble.`;
+
+const MODES = {
+  Code:     { label: 'Code Review', color: '#10b981' },
+  Browser:  { label: 'Web',         color: '#3b82f6' },
+  Document: { label: 'Document',    color: '#f59e0b' },
+  Terminal: { label: 'Terminal',    color: '#6b7280' },
+  Design:   { label: 'Design',      color: '#ec4899' },
+  Other:    { label: 'General',     color: 'rgb(139,92,246)' },
+};
+
+function parseMode(text) {
+  const match = text.match(/^Mode:\s*(\w+)\s*\n?/);
+  if (!match) return { mode: null, body: text };
+  const key = match[1];
+  return { mode: MODES[key] ? key : 'Other', body: text.slice(match[0].length).trimStart() };
+}
 
 function parseInline(text) {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
@@ -163,8 +197,8 @@ export default function App() {
         }
       }
 
-      const finalText = streamRef.current;
-      setMessages(prev => [...prev, { role: 'assistant', text: finalText }]);
+      const { mode, body } = parseMode(streamRef.current);
+      setMessages(prev => [...prev, { role: 'assistant', text: body, mode }]);
       setStreaming('');
     } catch (err) {
       if (err.name !== 'AbortError') setError(err.message || 'Something went wrong');
@@ -391,10 +425,22 @@ export default function App() {
               </div>
             );
           }
+          const modeInfo = msg.mode ? MODES[msg.mode] : null;
           return (
             <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '16px', paddingRight: '4px' }}>
               <div style={{ flexShrink: 0, marginTop: '2px' }}><GlanceLogo size={14} /></div>
               <div style={{ fontSize: '13px', flex: 1 }}>
+                {modeInfo && (
+                  <span style={{
+                    display: 'inline-block', marginBottom: '7px',
+                    fontSize: '10px', fontWeight: 700, letterSpacing: '0.07em',
+                    textTransform: 'uppercase', padding: '2px 7px', borderRadius: '4px',
+                    background: modeInfo.color + '22', color: modeInfo.color,
+                    border: `1px solid ${modeInfo.color}44`,
+                  }}>
+                    {modeInfo.label}
+                  </span>
+                )}
                 <StreamingText text={msg.text} />
               </div>
             </div>
@@ -406,7 +452,7 @@ export default function App() {
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', paddingRight: '4px' }}>
             <div style={{ flexShrink: 0, marginTop: '2px' }}><GlanceLogo size={14} /></div>
             <div style={{ fontSize: '13px', flex: 1 }}>
-              <StreamingText text={streaming} />
+              <StreamingText text={parseMode(streaming).body} />
             </div>
           </div>
         )}
