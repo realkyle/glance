@@ -242,17 +242,6 @@ export default function App() {
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', WebkitAppRegion: 'no-drag' }}>
-          <kbd style={{
-            color: 'rgba(255,255,255,0.3)',
-            fontSize: '10px',
-            background: 'rgba(255,255,255,0.06)',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            border: '1px solid rgba(255,255,255,0.08)',
-            fontFamily: 'monospace',
-          }}>
-            ⌃⇧Space · ⌃⇧D
-          </kbd>
           <button
             onClick={() => window.electronAPI?.minimizeWindow()}
             style={{
