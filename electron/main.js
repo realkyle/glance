@@ -162,11 +162,11 @@ app.whenReady().then(() => {
 
   globalShortcut.register('CommandOrControl+Shift+Space', async () => {
     if (!win) return;
-    if (!win.isVisible()) { win.show(); win.focus(); }
     try {
-      const dataUrl = await captureScreen();
+      const dataUrl = await captureWithHide();
       win.webContents.send('screenshot', dataUrl);
     } catch (err) {
+      win.show();
       win.webContents.send('screenshot-error', err.message);
     }
   });
@@ -181,8 +181,17 @@ app.whenReady().then(() => {
   });
 });
 
+async function captureWithHide() {
+  win.hide();
+  await new Promise(r => setTimeout(r, 150));
+  const dataUrl = await captureScreen();
+  win.show();
+  win.focus();
+  return dataUrl;
+}
+
 ipcMain.handle('capture-screen', async () => {
-  return await captureScreen();
+  return await captureWithHide();
 });
 
 ipcMain.on('open-region-selector', () => openRegionSelector());
