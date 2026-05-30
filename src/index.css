@@ -38,7 +38,8 @@ body {
 }
 
 .btn-capture:hover {
-  animation: pulse-glow 1.5s ease-in-out infinite;
+  background: rgba(139, 92, 246, 0.22) !important;
+  border-color: rgba(139, 92, 246, 0.45) !important;
 }
 
 @keyframes spin {

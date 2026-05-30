@@ -100,6 +100,14 @@ function MicIcon({ active }) {
   );
 }
 
+function SendIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+      <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function NewChatIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -339,41 +347,20 @@ export default function App() {
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', WebkitAppRegion: 'no-drag' }}>
-          {hasMessages && (
-            <button
-              onClick={handleNewChat}
-              title="New chat"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'rgba(255,255,255,0.3)',
-                padding: '4px 6px',
-                borderRadius: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '11px',
-                fontWeight: 500,
-                transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
-            >
-              <NewChatIcon />
-              New
-            </button>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', WebkitAppRegion: 'no-drag' }}>
           <button
             onClick={() => window.electronAPI?.minimizeWindow()}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: '2px 4px', borderRadius: '4px', fontSize: '14px', lineHeight: 1 }}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', color: 'rgba(255,255,255,0.55)', width: '22px', height: '22px', borderRadius: '50%', fontSize: '14px', lineHeight: 1, transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             title="Minimize"
+            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
           >−</button>
           <button
             onClick={() => window.electronAPI?.closeWindow()}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.25)', padding: '2px 4px', borderRadius: '4px', fontSize: '14px', lineHeight: 1 }}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', color: 'rgba(255,255,255,0.55)', width: '22px', height: '22px', borderRadius: '50%', fontSize: '12px', lineHeight: 1, transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             title="Close"
+            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
           >✕</button>
         </div>
       </div>
@@ -386,9 +373,9 @@ export default function App() {
           disabled={loading}
           style={{
             flex: 1, padding: '10px', borderRadius: '10px',
-            border: '1px solid rgba(139,92,246,0.4)',
-            background: loading ? 'rgba(139,92,246,0.08)' : 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(109,40,217,0.22))',
-            color: loading ? 'rgba(139,92,246,0.5)' : 'rgb(196,167,255)',
+            border: '1px solid rgba(139,92,246,0.3)',
+            background: loading ? 'rgba(139,92,246,0.06)' : 'rgba(139,92,246,0.15)',
+            color: loading ? 'rgba(139,92,246,0.4)' : 'rgb(196,167,255)',
             fontSize: '13px', fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
@@ -404,9 +391,9 @@ export default function App() {
           title="Select a region of the screen"
           style={{
             padding: '10px 12px', borderRadius: '10px',
-            border: '1px solid rgba(139,92,246,0.25)',
-            background: loading ? 'rgba(139,92,246,0.04)' : 'rgba(139,92,246,0.08)',
-            color: loading ? 'rgba(139,92,246,0.3)' : 'rgb(167,139,250)',
+            border: '1px solid rgba(139,92,246,0.3)',
+            background: loading ? 'rgba(139,92,246,0.06)' : 'rgba(139,92,246,0.1)',
+            color: loading ? 'rgba(139,92,246,0.4)' : 'rgb(196,167,255)',
             fontSize: '12px', fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
@@ -423,18 +410,19 @@ export default function App() {
 
         {/* Empty state */}
         {isEmpty && (
-          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <GlanceLogo />
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Ask about anything on your screen</p>
+              <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11.5px' }}>Capture a screenshot to get started</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <kbd style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '5px', padding: '2px 7px', color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontFamily: 'monospace' }}>Ctrl+Shift+Space</kbd>
-                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px' }}>Full screen capture</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <kbd style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '5px', padding: '2px 7px', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontFamily: 'monospace' }}>Ctrl+Shift+Space</kbd>
+                <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px' }}>Full screen</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <kbd style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '5px', padding: '2px 7px', color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontFamily: 'monospace' }}>Ctrl+Shift+D</kbd>
-                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px' }}>Select a region</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <kbd style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '5px', padding: '2px 7px', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontFamily: 'monospace' }}>Ctrl+Shift+D</kbd>
+                <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px' }}>Select a region</span>
               </div>
             </div>
           </div>
@@ -509,6 +497,31 @@ export default function App() {
       {/* Input */}
       <div style={{ padding: '10px 16px 14px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
         <form onSubmit={handleFollowup} style={{ display: 'flex', gap: '8px' }}>
+          {hasMessages && (
+            <button
+              type="button"
+              onClick={handleNewChat}
+              title="New chat"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                cursor: 'pointer',
+                color: 'rgba(255,255,255,0.55)',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'all 0.15s',
+                WebkitAppRegion: 'no-drag',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+            >
+              <NewChatIcon />
+            </button>
+          )}
           <input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
@@ -553,21 +566,24 @@ export default function App() {
           <button
             type="submit"
             disabled={!hasMessages || !question.trim() || loading}
+            title="Send"
             style={{
               background: 'rgba(139,92,246,0.2)',
               border: '1px solid rgba(139,92,246,0.3)',
               borderRadius: '8px',
-              padding: '8px 12px',
-              color: 'rgb(196,167,255)',
-              fontSize: '12px',
-              fontWeight: 600,
+              padding: '8px 10px',
+              color: 'rgba(255,255,255,0.85)',
               cursor: (!hasMessages || !question.trim() || loading) ? 'not-allowed' : 'pointer',
               opacity: (!hasMessages || !question.trim() || loading) ? 0.4 : 1,
-              transition: 'opacity 0.15s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              transition: 'all 0.15s',
               WebkitAppRegion: 'no-drag',
             }}
           >
-            Ask
+            <SendIcon />
           </button>
         </form>
       </div>
